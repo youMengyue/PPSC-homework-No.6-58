@@ -1,0 +1,37 @@
+# ============================================================================
+# .gitignore for MPI Ring Pattern Demo Project
+# ============================================================================
+
+# Compiled executable
+ring_sum
+
+# Object files
+*.o
+*.obj
+
+# Debug files
+*.dSYM/
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Build directories
+build/
+bin/
+out/
+
+# Temporary files
+*.tmp
+*.log
+
+# Core dumps
+core
+core.*
