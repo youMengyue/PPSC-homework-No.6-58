@@ -28,6 +28,20 @@ The program performs a **Distributed Ring Summation**:
 3. Each process adds its local value to the token
 4. The final sum is verified using the arithmetic series formula
 
+### Why This Task?
+
+This task was chosen for the following reasons:
+
+1. **Perfect Match for Ring Pattern**: The accumulative summation requires a "token" to travel through all processes in sequence, which is the classic textbook application of the Ring Exchange pattern.
+
+2. **Demonstrates Point-to-Point Communication**: The task uses only `MPI_Send` and `MPI_Recv` without relying on collective operations (like `MPI_Reduce`), clearly showing mastery of the ring communication logic.
+
+3. **Justifies 64-bit Data Type**: When the number of processes is large or each process holds a big value, the sum may overflow a 32-bit integer. Using `long long int` is both reasonable and necessary.
+
+4. **Easy to Verify**: The result can be mathematically verified using the arithmetic series formula: $\text{Sum} = 1000 \times \frac{(N-1) \times N}{2}$, ensuring correctness.
+
+5. **Scalable**: The same logic works for any number of processes, from 2 to thousands.
+
 ### Ring Topology
 
 ```
@@ -145,34 +159,84 @@ Expected Sum = `1000 × (0 + 1 + 2 + 3)` = `1000 × 6` = **6000** ✓
 
 ---
 
+## 💡 How This Project Demonstrates Parallel Computing
+
+### 1. Distributed Computation with Independent Processes
+
+```cpp
+long long local_value = (long long)world_rank * 1000;
+```
+
+Each process computes its own `local_value` **independently and simultaneously**. With 8 processes, all 8 values are computed at the same time, not sequentially. This is the essence of parallelism: **work is divided among multiple workers**.
+
+### 2. Message Passing Instead of Shared Memory
+
+```cpp
+MPI_Send(&token, 1, MPI_LONG_LONG, next_rank, tag, MPI_COMM_WORLD);
+MPI_Recv(&token, 1, MPI_LONG_LONG, prev_rank, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+```
+
+Processes do **not** share memory. They communicate explicitly through `MPI_Send` and `MPI_Recv`. This model:
+- Scales to **thousands of machines** across networks
+- Avoids race conditions and data corruption
+- Is the foundation of **supercomputer programming**
+
+### 3. Ring Topology: Structured Parallel Communication
+
+```cpp
+int next_rank = (world_rank + 1) % world_size;
+int prev_rank = (world_rank - 1 + world_size) % world_size;
+```
+
+The ring topology demonstrates:
+- **Neighbor communication**: Each process only talks to its neighbors
+- **Scalability**: Adding more processes doesn't increase communication complexity per process
+- **Pipeline parallelism**: Data flows through processes like an assembly line
+
+### 4. Parallel Reduction Pattern
+
+The token accumulation (`token += local_value`) implements a **parallel reduction**:
+
+| Step | What Happens | Parallel Benefit |
+|------|--------------|------------------|
+| Process 0 | Initializes token = 0 | Master coordinates |
+| Process 1-7 | Each adds its value | **Simultaneous local computation** |
+| Final | Sum = 28000 | Distributed workload |
+
+In real applications, this pattern handles:
+- Summing billions of numbers across a cluster
+- Aggregating sensor data from thousands of IoT devices
+- Computing global statistics in distributed databases
+
+### 5. Verification: Ensuring Correctness in Parallel Systems
+
+```cpp
+long long expected_sum = 1000LL * (long long)(world_size - 1) * (long long)world_size / 2;
+if (token == expected_sum) { /* SUCCESS */ }
+```
+
+Parallel programs are harder to debug. This verification step shows:
+- **Deterministic validation**: Mathematical formula guarantees expected result
+- **Fault detection**: Any communication error would cause mismatch
+
+### Summary: From Simple Demo to Real-World Impact
+
+| This Project | Real Parallel Systems |
+|--------------|----------------------|
+| 8 processes on 1 machine | 100,000+ processes across data centers |
+| Token = sum of ranks | Token = partial results of complex simulations |
+| Ring of 8 nodes | Ring of GPU clusters for deep learning |
+| Verify with formula | Checksums for petabyte-scale data integrity |
+
+**This project is a microcosm of how supercomputers solve problems**: divide work, communicate results, combine answers.
+
+---
+
 ## 📁 Project Structure
 
 ```
 PPSC-homework-No.6-58/
 ├── README.md          # Project documentation (this file)
-├── technology.md      # Technical design document
 ├── Makefile           # Build automation script
 └── ring_sum.cpp       # Main source code
 ```
-
----
-
-## 🐳 Docker Support
-
-If running in a Docker container as root:
-
-```bash
-# Option 1: Add command line flag
-mpirun --oversubscribe --allow-run-as-root -np 4 ./ring_sum
-
-# Option 2: Set environment variables
-export OMPI_ALLOW_RUN_AS_ROOT=1
-export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
-mpirun --oversubscribe -np 4 ./ring_sum
-```
-
----
-
-## 📝 License
-
-This project is for educational purposes as part of the PPSC course assignment.
